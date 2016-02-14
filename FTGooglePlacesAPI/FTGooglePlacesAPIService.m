@@ -64,7 +64,7 @@ static BOOL FTGooglePlacesAPIDebugLoggingEnabled;
  *  AFNetworking request manager. This manager is lazily intitialized in custom getter.
  *  Default implementation is initialized with base URL of Google Places API
  */
-@property (nonatomic, strong) AFHTTPRequestOperationManager *httpRequestOperationManager;
+@property (nonatomic, strong) AFHTTPSessionManager *httpSessionManager;
 
 @property (nonatomic, copy) NSString *apiKey;
 @property (nonatomic, weak) Class searchResultsItemClass;
@@ -127,16 +127,16 @@ static BOOL FTGooglePlacesAPIDebugLoggingEnabled;
 
 #pragma mark Private
 
-- (AFHTTPRequestOperationManager *)httpRequestOperationManager
+- (AFHTTPSessionManager *)httpSessionManager
 {
-    if (!_httpRequestOperationManager)
+    if (!_httpSessionManager)
     {
         NSURL *baseUrl = [NSURL URLWithString:FTGooglePlacesAPIBaseURL];
-        _httpRequestOperationManager = [[AFHTTPRequestOperationManager alloc] initWithBaseURL:baseUrl];
-        _httpRequestOperationManager.requestSerializer = [AFHTTPRequestSerializer serializer];
+        _httpSessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:baseUrl];
+        _httpSessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
     }
     
-    return _httpRequestOperationManager;
+    return _httpSessionManager;
 }
 
 #pragma mark - Public class methods
@@ -239,21 +239,20 @@ static BOOL FTGooglePlacesAPIDebugLoggingEnabled;
     NSString *requestPath = [NSString stringWithFormat:@"%@/json", [request placesAPIRequestMethod]];
     
     //  Perform request using AFNetworking
-    AFHTTPRequestOperationManager *manager = service.httpRequestOperationManager;
-    
+    AFHTTPSessionManager *manager = service.httpSessionManager;
+
     //  Perform request
     [manager GET:requestPath
       parameters:params
-         success:^(AFHTTPRequestOperation *operation, id responseObject)
-     {
-         FTGPServiceLog(@"%@ request SUCCESS (Request URL: %@)", [self class], operation.request.URL);
-         completion(responseObject, nil);
-     }
-         failure:^(AFHTTPRequestOperation *operation, NSError *error)
-     {
-         FTGPServiceLog(@"%@ request FAILURE: (Request URL: %@, Error: %@)", [self class], operation.request.URL, error);
-         completion(nil, error);
-     }];
+        progress:nil
+         success:^(NSURLSessionDataTask *task, id responseObject) {
+             FTGPServiceLog(@"%@ request SUCCESS (Request URL: %@)", [self class], task.currentRequest.URL);
+             completion(responseObject, nil);
+         }
+         failure:^(NSURLSessionDataTask *task, NSError *error) {
+             FTGPServiceLog(@"%@ request FAILURE: (Request URL: %@, Error: %@)", [self class], task.currentRequest.URL, error);
+             completion(nil, error);
+         }];
 }
 
 @end
